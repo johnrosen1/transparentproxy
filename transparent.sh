@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #MIT License
 #
 #Copyright (c) 2019-2020 johnrosen1
@@ -35,7 +35,7 @@ if [[ $(uname -m 2> /dev/null) != x86_64 ]]; then
 	exit 1
 fi
 
-myipv6=$(ip -6 a | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)
+#myipv6=$(ip -6 a | grep inet6 | grep "scope global" | awk '{print $2}' | cut -d'/' -f1)
 
 colorEcho(){
 	set +e
@@ -49,7 +49,7 @@ sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install xz-utils 
 sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
 
 sudo apt-get install curl unzip -y
-sudo bash <(curl -L -s https://install.direct/go.sh)
+#sudo bash <(curl -L -s https://install.direct/go.sh)
 
 sudo modprobe xt_TPROXY
 
