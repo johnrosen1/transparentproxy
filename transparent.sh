@@ -324,8 +324,8 @@ cat > '/etc/rc.local' << EOF
 ip rule add fwmark 1 table 100 
 ip route add local 0.0.0.0/0 dev lo table 100
 
-iptables -t nat -I PREROUTING -i br-lan -p udp --dport 53 -j DNAT --to 10.0.0.1
-iptables -t nat -I PREROUTING -i br-lan -p udp --dport 53 -j DNAT --to 10.0.0.1
+#iptables -t nat -I PREROUTING -i br-lan -p udp --dport 53 -j DNAT --to 10.0.0.1
+#iptables -t nat -I PREROUTING -i br-lan -p udp --dport 53 -j DNAT --to 10.0.0.1
 
 iptables -I INPUT -s 36.110.236.68/16 -j DROP
 iptables -I FORWARD -d 36.110.236.68/16 -j DROP
@@ -338,8 +338,8 @@ iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
 iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
 iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN
 iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
-iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
-iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
+iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --on-ip 127.0.0.1 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
+iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port 12345 --on-ip 127.0.0.1 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
 iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
 
 exit 0
