@@ -49,6 +49,18 @@ colorEcho(){
 apt-get update && apt-get upgrade -y && apt-get install xz-utils -y
 bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
 
+apt-get install ipset -y
+
+ipset create cnip hash:net maxelem 4294967295
+
+curl -LO https://github.com/Hackl0us/GeoIP2-CN/raw/release/CN-ip-cidr.txt
+
+while read LINE
+do
+  ipset add cnip $LINE
+  echo $LINE 
+done < CN-ip-cidr.txt
+
 apt-get install curl unzip -y
 #sudo bash <(curl -L -s https://install.direct/go.sh)
 
@@ -287,8 +299,8 @@ iptables -t mangle -N V2RAY
 iptables -t mangle -A V2RAY -d 127.0.0.1/32 -j RETURN
 iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
 iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
-iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN
-iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
+iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
+iptables -t mangle -A V2RAY -m set --match-set cnip src,dst,dst -j RETURN 
 iptables -t mangle -A V2RAY -p udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
 iptables -t mangle -A V2RAY -p tcp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
 iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
@@ -349,6 +361,7 @@ iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
 iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
 iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN
 iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
+iptables -t mangle -A V2RAY -m set --match-set cnip src,dst,dst -j RETURN 
 iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --on-ip 127.0.0.1 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
 iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port 12345 --on-ip 127.0.0.1 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
 iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
