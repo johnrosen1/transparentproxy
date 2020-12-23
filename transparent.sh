@@ -318,7 +318,7 @@ EOF
 systemctl enable rc-local
 
 cat > '/etc/rc.local' << EOF
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 设置策略路由
 ip rule add fwmark 1 table 100 
