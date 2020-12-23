@@ -21,6 +21,7 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+cd
 clear
 
 set +e
@@ -45,10 +46,10 @@ colorEcho(){
 
 #iptables -t nat -I PREROUTING -i br0 -p udp -m udp --dport 53 -j DNAT --to 10.0.0.1
 
-sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install xz-utils -y
-sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
+apt-get update && sudo apt-get upgrade -y && sudo apt-get install xz-utils -y
+bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
 
-sudo apt-get install curl unzip -y
+apt-get install curl unzip -y
 #sudo bash <(curl -L -s https://install.direct/go.sh)
 
 sudo modprobe xt_TPROXY
@@ -94,6 +95,17 @@ EOF
 systemctl start trojan
 systemctl enable trojan
 
+useradd -m -s /sbin/nologin v2ray
+mkdir tmp
+cd tmp
+curl -LO  https://github.com/v2fly/v2ray-core/releases/download/v4.31.0/v2ray-linux-64.zip
+unzip v2ray*
+cp v2ray /usr/sbin/
+cp v2ctl /usr/sbin/
+cp *.dat /usr/sbin/
+mkdir /etc/v2ray/
+cd
+rm -rf tmp
 	cat > '/etc/v2ray/config.json' << EOF
 {
 	"log": {
@@ -248,11 +260,11 @@ Documentation=https://www.v2fly.org/
 After=network.target nss-lookup.target
 
 [Service]
-User=nobody
+User=v2ray
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
-ExecStart=/usr/local/bin/v2ray -config /usr/local/etc/v2ray/config.json
+ExecStart=/usr/sbin/v2ray -config /etc/v2ray/config.json
 Restart=on-failure
 RestartPreventExitStatus=23
 LimitNPROC=500
@@ -262,8 +274,7 @@ LimitNOFILE=1000000
 WantedBy=multi-user.target
 EOF
 
-
-sudo /usr/bin/v2ray/v2ray -test -config /etc/v2ray/config.json
+sudo /usr/sbin/v2ray -test -config /etc/v2ray/config.json
 sudo systemctl start v2ray
 sudo systemctl status v2ray
 
@@ -345,3 +356,5 @@ iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
 exit 0
 
 EOF
+
+chmod +x /etc/rc.local
