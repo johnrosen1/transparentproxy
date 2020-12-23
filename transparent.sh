@@ -46,13 +46,13 @@ colorEcho(){
 
 #iptables -t nat -I PREROUTING -i br0 -p udp -m udp --dport 53 -j DNAT --to 10.0.0.1
 
-apt-get update && sudo apt-get upgrade -y && sudo apt-get install xz-utils -y
+apt-get update && apt-get upgrade -y && apt-get install xz-utils -y
 bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
 
 apt-get install curl unzip -y
 #sudo bash <(curl -L -s https://install.direct/go.sh)
 
-sudo modprobe xt_TPROXY
+modprobe xt_TPROXY
 
 echo "xt_TPROXY" > '/etc/modules-load.d/TPROXY.conf'
 
@@ -274,9 +274,9 @@ LimitNOFILE=1000000
 WantedBy=multi-user.target
 EOF
 
-sudo /usr/sbin/v2ray -test -config /etc/v2ray/config.json
-sudo systemctl start v2ray
-sudo systemctl status v2ray
+/usr/sbin/v2ray -test -config /etc/v2ray/config.json
+systemctl start v2ray
+systemctl status v2ray
 
 # 设置策略路由
 ip rule add fwmark 1 table 100 
