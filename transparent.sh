@@ -121,7 +121,7 @@ systemctl enable trojan
       }
    },
         {
-            "listen": "127.0.0.1",
+            "listen": "0.0.0.0",
             "port": 8001,
             "protocol": "http",
             "settings": {
@@ -170,20 +170,11 @@ systemctl enable trojan
            "mark": 255
                }
             }
-        },
-    {
-      "protocol": "dns",
-      "tag": "dns-out"
-    }
+        }
 	],
     "routing": {
     "domainStrategy": "IPIfNonMatch",
     "rules": [
-      {
-        "type": "field",
-        "inboundTag": ["dns-in"],
-        "outboundTag": "dns-out"
-      },
       {
         "type": "field",
         "inboundTag": [
@@ -191,14 +182,14 @@ systemctl enable trojan
         ],
         "port": 53,
         "network": "udp",
-        "outboundTag": "dns-out"
+        "outboundTag": "direct"
       },
       {
         "type": "field",
         "inboundTag": [
           "transparent"
         ],
-        "port": "10000-65535",
+        "port": "1000-65535",
         "network": "tcp,udp",
         "outboundTag": "direct"
       },
@@ -223,12 +214,7 @@ systemctl enable trojan
       {
         "type": "field",
         "ip": ["223.5.5.5","114.114.114.114"],
-        "outboundTag": "direct"
-      },
-      {
-        "type": "field",
-        "ip": ["8.8.8.8","1.1.1.1"],
-        "outboundTag": "proxy"
+        "outboundTag": "adblock"
       },
       {
         "type": "field",
@@ -251,15 +237,31 @@ systemctl enable trojan
          "protocol": ["bittorrent"]
       }
     ]
-  },
-    "dns": {
-      "hosts": {
-    "geosite:qihoo360": "www.johnrosen1.com"
-    },
-    "servers": [{"address": "127.0.0.1","port": 5353},{"address": "114.114.114.114","port": 53,"domains": ["geosite:cn","bilibili.com","ntp.org"]}]
   }
 }
 EOF
+
+  cat > '/etc/systemd/system/v2ray.service' << EOF
+[Unit]
+Description=V2Ray Service
+Documentation=https://www.v2fly.org/
+After=network.target nss-lookup.target
+
+[Service]
+User=nobody
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/local/bin/v2ray -config /usr/local/etc/v2ray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+LimitNPROC=500
+LimitNOFILE=1000000
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 
 sudo /usr/bin/v2ray/v2ray -test -config /etc/v2ray/config.json
 sudo systemctl start v2ray
@@ -276,8 +278,8 @@ iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
 iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
 iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN
 iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
-iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
-iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
+iptables -t mangle -A V2RAY -p udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
+iptables -t mangle -A V2RAY -p tcp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
 iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
 
 iptables -I INPUT -s 36.110.236.68/16 -j DROP
