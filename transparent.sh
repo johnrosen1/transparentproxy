@@ -52,6 +52,7 @@ bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quicksta
 apt-get install ipset -y
 
 ipset create cnip hash:net maxelem 4294967295
+ipset create lanip hash:net maxelem 4294967295
 
 curl -LO https://github.com/Hackl0us/GeoIP2-CN/raw/release/CN-ip-cidr.txt
 
@@ -60,6 +61,16 @@ do
   ipset add cnip $LINE
   echo $LINE 
 done < CN-ip-cidr.txt
+
+ipset add lanip 127.0.0.1/32
+ipset add lanip 255.255.255.255/32
+ipset add lanip 10.0.0.0/24
+ipset add lanip 169.254.0.0/16
+ipset add lanip 172.16.0.0/12
+ipset add lanip 192.168.0.0/16
+ipset add lanip 224.0.0.0/4
+ipset add lanip 240.0.0.0/4
+ipset add lanip 0.0.0.0/8
 
 apt-get install curl unzip -y
 #sudo bash <(curl -L -s https://install.direct/go.sh)
@@ -296,16 +307,13 @@ ip route add local 0.0.0.0/0 dev lo table 100
 
 # 代理局域网设备
 iptables -t mangle -N V2RAY
-iptables -t mangle -A V2RAY -d 127.0.0.1/32 -j RETURN
-iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
-iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
-iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
-iptables -t mangle -A V2RAY -m set --match-set cnip src,dst,dst -j RETURN 
+iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
+iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
 iptables -t mangle -A V2RAY -p udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
 iptables -t mangle -A V2RAY -p tcp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
 iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
 
-iptables -I INPUT -s 36.110.236.68/16 -j DROP
+iptables -I INPUT -s 36.110.236.68/16 -j DROP #屏蔽360,非常重要！
 iptables -I FORWARD -d 36.110.236.68/16 -j DROP
 iptables -I OUTPUT -d 36.110.236.68/16 -j DROP
 
