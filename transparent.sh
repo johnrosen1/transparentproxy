@@ -135,7 +135,7 @@ rm -rf tmp
      "followRedirect": true
    },
    "sniffing": {
-     "enabled": true,
+     "enabled": false,
      "destOverride": ["http", "tls"]
    },
       "streamSettings": {
@@ -206,7 +206,7 @@ rm -rf tmp
         ],
         "port": 53,
         "network": "udp",
-        "outboundTag": "direct"
+        "outboundTag": "adblock"
       },
       {
         "type": "field",
