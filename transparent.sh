@@ -351,28 +351,20 @@ systemctl enable rc-local
 cat > '/etc/rc.local' << EOF
 #!/usr/bin/env bash
 
-# 设置策略路由
 ip rule add fwmark 1 table 100 
 ip route add local 0.0.0.0/0 dev lo table 100
 
-#iptables -t nat -I PREROUTING -i br-lan -p udp --dport 53 -j DNAT --to 10.0.0.1
-#iptables -t nat -I PREROUTING -i br-lan -p udp --dport 53 -j DNAT --to 10.0.0.1
-
-iptables -I INPUT -s 36.110.236.68/16 -j DROP
-iptables -I FORWARD -d 36.110.236.68/16 -j DROP
-iptables -I OUTPUT -d 36.110.236.68/16 -j DROP
-
 # 代理局域网设备
 iptables -t mangle -N V2RAY
-iptables -t mangle -A V2RAY -d 127.0.0.1/32 -j RETURN
-iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
-iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
-iptables -t mangle -A V2RAY -d 10.0.0.0/24 -j RETURN
-iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN # 直连局域网，避免 V2Ray 无法启动时无法连网关的 SSH，如果你配置的是其他网段（如 10.x.x.x 等），则修改成自己的
-iptables -t mangle -A V2RAY -m set --match-set cnip src,dst,dst -j RETURN 
-iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --on-ip 127.0.0.1 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
-iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port 12345 --on-ip 127.0.0.1 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
+iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
+iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
+iptables -t mangle -A V2RAY -p udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
+iptables -t mangle -A V2RAY -p tcp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
 iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
+
+iptables -I INPUT -s 36.110.236.68/16 -j DROP #屏蔽360,非常重要！
+iptables -I FORWARD -d 36.110.236.68/16 -j DROP
+iptables -I OUTPUT -d 36.110.236.68/16 -j DROP
 
 exit 0
 
