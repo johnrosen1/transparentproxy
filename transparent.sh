@@ -454,6 +454,8 @@ iptables -t mangle -A V2RAY -d $SERVER_IP -j RETURN
 iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
 iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
 
+#iptables -t mangle -A V2RAY -j RETURN -m mark --mark 2    # 直连 SO_MARK 为 0xff 的流量(0xff 是 16 进制数，数值上等同与上面V2Ray 配置的 255)，此规则目的是解决v2ray占用大量CPU（https://github.com/v2ray/v2ray-core/issues/2621）
+
 # 未命中上文的规则的包，打上标记
 iptables -t mangle -A V2RAY -j TPROXY -p tcp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
 iptables -t mangle -A V2RAY -j TPROXY -p udp -m udp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
@@ -501,25 +503,8 @@ cat > '/etc/rc.local' << EOF
 ip route add local default dev lo table 100
 ip rule add fwmark 1 lookup 100
 
-# 代理局域网设备
-iptables -t mangle -N V2RAY
-
-# 绕过Trojan-Go服务器地址
-iptables -t mangle -A V2RAY -d $SERVER_IP -j RETURN
-
-# 绕过私有以及中国大陆地址
-iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
-iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
-
-# 未命中上文的规则的包，打上标记
-iptables -t mangle -A V2RAY -j TPROXY -p tcp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
-iptables -t mangle -A V2RAY -j TPROXY -p udp -m udp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
-# 从$INTERFACE网卡流入的所有TCP/UDP包，跳转V2RAY链
-iptables -t mangle -A PREROUTING -i br0 -j V2RAY
-
-iptables -I INPUT -s 36.110.236.68/16 -j DROP #屏蔽360,非常重要！
-iptables -I FORWARD -d 36.110.236.68/16 -j DROP
-iptables -I OUTPUT -d 36.110.236.68/16 -j DROP
+/usr/bin/ipset -f /etc/ipset.conf restore
+/usr/bin/iptables-restore /etc/iptables/iptables.rules
 
 exit 0
 
