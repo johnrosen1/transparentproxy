@@ -466,6 +466,10 @@ iptables -I INPUT -s 36.110.236.68/16 -j DROP #屏蔽360,非常重要！
 iptables -I FORWARD -d 36.110.236.68/16 -j DROP
 iptables -I OUTPUT -d 36.110.236.68/16 -j DROP
 
+mkdir /etc/iptables
+ipset save > /etc/ipset.conf
+iptables-save > /etc/iptables/iptables.rules
+
 cat > '/lib/systemd/system/rc-local.service' << EOF
 #  SPDX-License-Identifier: LGPL-2.1+
 #
