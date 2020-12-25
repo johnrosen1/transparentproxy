@@ -422,16 +422,24 @@ systemctl start v2ray
 systemctl status v2ray
 
 # 设置策略路由
-ip rule add fwmark 1 table 100 
-ip route add local 0.0.0.0/0 dev lo table 100
+ip route add local default dev lo table 100
+ip rule add fwmark 1 lookup 100
 
 # 代理局域网设备
 iptables -t mangle -N V2RAY
+
+# 绕过Trojan-Go服务器地址
+iptables -t mangle -A V2RAY -d $SERVER_IP -j RETURN
+
+# 绕过私有以及中国大陆地址
 iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
 iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
-iptables -t mangle -A V2RAY -p udp -m udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
-iptables -t mangle -A V2RAY -p tcp -m udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
-iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
+
+# 未命中上文的规则的包，打上标记
+iptables -t mangle -A V2RAY -j TPROXY -p tcp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
+iptables -t mangle -A V2RAY -j TPROXY -p udp -m udp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
+# 从$INTERFACE网卡流入的所有TCP/UDP包，跳转V2RAY链
+iptables -t mangle -A PREROUTING -i br0 -j V2RAY
 
 iptables -I INPUT -s 36.110.236.68/16 -j DROP #屏蔽360,非常重要！
 iptables -I FORWARD -d 36.110.236.68/16 -j DROP
@@ -471,16 +479,24 @@ systemctl enable rc-local
 cat > '/etc/rc.local' << EOF
 #!/usr/bin/env bash
 
-ip rule add fwmark 1 table 100 
-ip route add local 0.0.0.0/0 dev lo table 100
+ip route add local default dev lo table 100
+ip rule add fwmark 1 lookup 100
 
 # 代理局域网设备
 iptables -t mangle -N V2RAY
+
+# 绕过Trojan-Go服务器地址
+iptables -t mangle -A V2RAY -d $SERVER_IP -j RETURN
+
+# 绕过私有以及中国大陆地址
 iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
 iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
-iptables -t mangle -A V2RAY -p udp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 UDP 打标记 1，转发至 12345 端口
-iptables -t mangle -A V2RAY -p tcp --on-ip 127.0.0.1 -j TPROXY --on-port 12345 --tproxy-mark 1 # 给 TCP 打标记 1，转发至 12345 端口
-iptables -t mangle -A PREROUTING -j V2RAY # 应用规则
+
+# 未命中上文的规则的包，打上标记
+iptables -t mangle -A V2RAY -j TPROXY -p tcp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
+iptables -t mangle -A V2RAY -j TPROXY -p udp -m udp --on-ip 127.0.0.1 --on-port 12345 --tproxy-mark 0x01/0x01
+# 从$INTERFACE网卡流入的所有TCP/UDP包，跳转V2RAY链
+iptables -t mangle -A PREROUTING -i br0 -j V2RAY
 
 iptables -I INPUT -s 36.110.236.68/16 -j DROP #屏蔽360,非常重要！
 iptables -I FORWARD -d 36.110.236.68/16 -j DROP
