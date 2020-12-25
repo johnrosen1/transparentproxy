@@ -361,7 +361,7 @@ rm -rf tmp
       {
         "type": "field",
         "inboundTag": [
-          "transparent"
+          "transparent","transparent_udp"
         ],
         "port": "444-65535",
         "network": "tcp,udp",
@@ -370,7 +370,7 @@ rm -rf tmp
       {
         "type": "field",
         "inboundtag": [
-          "transparent"
+          "transparent_udp"
        ],
        "port": 123,
        "network": "udp",
