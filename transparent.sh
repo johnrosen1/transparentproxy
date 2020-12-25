@@ -262,7 +262,26 @@ rm -rf tmp
    "port": 12345,
    "protocol": "dokodemo-door",
    "settings": {
-     "network": "tcp,udp",
+     "network": "tcp",
+     "followRedirect": true
+   },
+   "sniffing": {
+     "enabled": false,
+     "destOverride": ["http", "tls"]
+   },
+      "streamSettings": {
+        "sockopt": {
+          "tproxy": "tproxy"
+        }
+      }
+   },
+ {
+   "tag":"transparent_udp",
+   "listen": "127.0.0.1",
+   "port": 12345,
+   "protocol": "dokodemo-door",
+   "settings": {
+     "network": "udp",
      "followRedirect": true
    },
    "sniffing": {
