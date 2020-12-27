@@ -171,8 +171,10 @@ bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quicksta
 
 apt-get install ipset -y
 
-ipset create cnip hash:net maxelem 4294967295
+
 ipset create lanip hash:net maxelem 4294967295
+ipset create cnip hash:net maxelem 4294967295
+ipset create directip hash:net maxelem 4294967295
 
 curl -LO https://github.com/Hackl0us/GeoIP2-CN/raw/release/CN-ip-cidr.txt
 
@@ -191,6 +193,21 @@ ipset add lanip 192.168.0.0/16
 ipset add lanip 224.0.0.0/4
 ipset add lanip 240.0.0.0/4
 ipset add lanip 0.0.0.0/8
+
+curl -s https://www.gstatic.com/ipranges/cloud.json | jq -r '.prefixes[].ipv4Prefix | select (.!=null)' cloud.json >> directip_gcp.txt
+curl -s https://raw.githubusercontent.com/joetek/aws-ip-ranges-json/master/ip-ranges-ec2.json | jq -r '.prefixes[].ip_prefix' ip-ranges.json >> directip_aws.txt
+
+while read LINE
+do
+  ipset add directip $LINE
+  echo $LINE 
+done < directip_gcp.txt
+
+while read LINE
+do
+  ipset add directip $LINE
+  echo $LINE 
+done < directip_aws.txt
 
 apt-get install curl unzip -y
 #sudo bash <(curl -L -s https://install.direct/go.sh)
@@ -453,7 +470,7 @@ iptables -t mangle -A V2RAY -d $SERVER_IP -j RETURN
 # 绕过私有以及中国大陆地址
 iptables -t mangle -A V2RAY -m set --match-set lanip dst -j RETURN #内网ip不经过v2ray直接连接，效能更好，且不会导致udp error
 iptables -t mangle -A V2RAY -m set --match-set cnip dst -j RETURN #国内ip不经过v2ray直接连接，效能更好，且不会导致udp error
-
+iptables -t mangle -A V2RAY -m set --match-set directip dst -j RETURN #GCp_ip不经过v2ray直接连接，效能更好，且不会导致udp error
 #iptables -t mangle -A V2RAY -j RETURN -m mark --mark 2    # 直连 SO_MARK 为 0xff 的流量(0xff 是 16 进制数，数值上等同与上面V2Ray 配置的 255)，此规则目的是解决v2ray占用大量CPU（https://github.com/v2ray/v2ray-core/issues/2621）
 
 # 未命中上文的规则的包，打上标记
